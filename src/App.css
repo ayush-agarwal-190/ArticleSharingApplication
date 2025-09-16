@@ -36,3 +36,87 @@
     transform: rotate(360deg);
   }
 }
+
+/* Compact Hero Section */
+.articles-hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px 20px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.articles-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,0 L100,0 L100,100 Z" fill="rgba(255,255,255,0.05)"/></svg>');
+  background-size: cover;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-content h1 {
+  font-size: 2rem;
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.hero-content p {
+  font-size: 1rem;
+  margin: 0;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+/* Optional: Add a subtle animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-content h1 {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.hero-content p {
+  animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+/* Compact Gradient Header */
+.articles-hero {
+  background: linear-gradient(135deg, #4a90e2 0%, #357abD 100%);
+  color: white;
+  padding: 25px 20px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+}
+
+.hero-content h1 {
+  font-size: 1.8rem;
+  margin: 0 0 8px 0;
+  font-weight: 700;
+}
+
+.hero-content p {
+  font-size: 0.95rem;
+  margin: 0;
+  opacity: 0.9;
+}
