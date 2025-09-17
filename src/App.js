@@ -1,9 +1,11 @@
+// src/App.js (updated)
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "./firebase";
 import { loginWithGoogle } from "./auth";
-import Header from "./components/Header";
+import EnhancedHeader from "./components/EnhancedHeader";
+import EnhancedFooter from "./components/EnhancedFooter";
 import EnhancedPostForm from "./components/EnhancedPostForm";
 import ArticlesPage from "./pages/ArticlesPage";
 import ArticlePage from "./pages/ArticlePage";
@@ -72,12 +74,12 @@ function App() {
               onClick={() => setNotification({ message: "", type: "" })}
               className="notification-close"
             >
-              ×
+              Ã—
             </button>
           </div>
         )}
 
-        <Header user={user} login={handleLogin} logout={handleLogout} />
+        <EnhancedHeader user={user} login={handleLogin} logout={handleLogout} />
         
         <main className="main-content">
           <Routes>
@@ -94,10 +96,13 @@ function App() {
                   />
                 ) : (
                   <div className="auth-required">
-                    <p>Please log in to write articles</p>
-                    <button onClick={handleLogin} className="login-button">
-                      Login with Google
-                    </button>
+                    <div className="auth-card">
+                      <h2>Login Required</h2>
+                      <p>Please log in to write articles</p>
+                      <button onClick={handleLogin} className="login-button">
+                        Login with Google
+                      </button>
+                    </div>
                   </div>
                 )
               } 
@@ -113,10 +118,13 @@ function App() {
                   />
                 ) : (
                   <div className="auth-required">
-                    <p>Please log in to manage your profile</p>
-                    <button onClick={handleLogin} className="login-button">
-                      Login with Google
-                    </button>
+                    <div className="auth-card">
+                      <h2>Login Required</h2>
+                      <p>Please log in to manage your profile</p>
+                      <button onClick={handleLogin} className="login-button">
+                        Login with Google
+                      </button>
+                    </div>
                   </div>
                 )
               } 
@@ -146,7 +154,7 @@ function App() {
                     </ol>
                     
                     <div className="about-footer">
-                      <p>Made with ❤️ for the student community</p>
+                      <p>Made with â¤ï¸ for the student community</p>
                     </div>
                   </div>
                 </div>
@@ -156,9 +164,7 @@ function App() {
           </Routes>
         </main>
         
-        <footer className="app-footer">
-          <p>College Forum © {new Date().getFullYear()} | Designed for Students</p>
-        </footer>
+        <EnhancedFooter />
       </div>
     </Router>
   );

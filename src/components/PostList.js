@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, query, orderBy, onSnapshot, doc, deleteDoc } from "firebase/firestore";
+import "./Post.css"; // ✅ Import CSS
 
 function PostList({ user, onError }) {
   const [posts, setPosts] = useState([]);
   const [filterTag, setFilterTag] = useState("");
-  const [userProfiles, setUserProfiles] = useState({});
 
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
@@ -57,7 +57,7 @@ function PostList({ user, onError }) {
           {allTags.map(tag => (
             <button
               key={tag}
-              className={filterTag === tag ? "active" : ""}
+              className={filterTag === tag ? "active" : ""} 
               onClick={() => setFilterTag(tag)}
             >
               {tag}
@@ -68,27 +68,31 @@ function PostList({ user, onError }) {
 
       {filteredPosts.map((post) => (
         <div key={post.id} className="post-card">
-          <h3>{post.title}</h3>
-          <p>{post.content}</p>
-          <div className="post-tags">
-            {post.tags && post.tags.map(tag => (
-              <span key={tag} className="tag">{tag}</span>
-            ))}
-          </div>
-          <div className="post-author">
-            <small>
-              By {post.author}
+          {/* Title */}
+          <h2 className="post-title">{post.title}</h2>
+
+          {/* Content */}
+          <p className="post-content">{post.content}</p>
+
+          {/* Footer with tags + author + date + delete */}
+          <div className="post-footer">
+            <span className="post-tags">
+              {post.tags && post.tags.length > 0 ? `Tags: ${post.tags.join(", ")}` : ""}
+            </span>
+            
+            <span className="post-date">
+              By {post.author} 
               {post.department && ` • ${post.department}`}
               {post.year && ` • ${post.year}`}
-            </small>
+              {post.createdAt && ` • ${new Date(post.createdAt.seconds * 1000).toLocaleString()}`}
+            </span>
+
+            {isPostOwner(post) && (
+              <button className="delete-btn" onClick={() => deletePost(post.id)}>
+                Delete
+              </button>
+            )}
           </div>
-          
-          {/* Add owner actions */}
-          {isPostOwner(post) && (
-            <div className="post-actions">
-              <button onClick={() => deletePost(post.id)}>Delete</button>
-            </div>
-          )}
         </div>
       ))}
     </div>
