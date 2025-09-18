@@ -1,0 +1,143 @@
+/* src/MembershipPage.css */
+
+/* Main container for the page with a cool gradient background */
+.membership-page {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: linear-gradient(145deg, #f8fafc 0%, #eef2f5 100%);
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+}
+
+/* Page header styling */
+.membership-header h1 {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.membership-header p {
+  font-size: 1.25rem;
+  color: #475569;
+  max-width: 600px;
+  margin: 0 auto 3rem;
+}
+
+/* The main "Upgrade" card */
+.membership-card-enhanced {
+  background: white;
+  border-radius: 24px;
+  padding: 3rem;
+  box-shadow: 0 20px 50px -10px rgba(102, 126, 234, 0.25);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.membership-card-enhanced:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 60px -12px rgba(102, 126, 234, 0.35);
+}
+
+/* Card header with the "Premium Access" title */
+.card-header h2 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.card-header .price {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #1e293b;
+  margin-bottom: 2rem;
+}
+
+.card-header .price span {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* The list of features with icons */
+.feature-list {
+  list-style: none;
+  padding: 0;
+  margin: 2rem 0;
+  text-align: left;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.feature-list li {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+  color: #334155;
+}
+
+.feature-list .icon {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  color: #667eea;
+}
+
+/* The awesome, unmissable upgrade button */
+.upgrade-btn-enhanced {
+  width: 100%;
+  padding: 1.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.upgrade-btn-enhanced:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.5);
+}
+
+/* Styling for users who are already members */
+.premium-status-card {
+  background: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+  color: white;
+  padding: 3rem;
+  border-radius: 24px;
+  box-shadow: 0 15px 40px rgba(16, 185, 129, 0.3);
+}
+
+.premium-status-card .icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
+.premium-status-card h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.premium-status-card p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin-top: 0.5rem;
+}
+
+/* Message for logged-out users */
+.login-to-join {
+  margin-top: 2rem;
+  font-size: 1.1rem;
+  color: #475569;
+  font-weight: 500;
+}

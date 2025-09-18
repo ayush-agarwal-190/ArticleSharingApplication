@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import "./EnhancedHeader.css";
 
-function EnhancedHeader({ user, login, logout }) {
+function EnhancedHeader({ user, login, logout, isPremium }) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -59,6 +59,16 @@ function EnhancedHeader({ user, login, logout }) {
             <span className="nav-icon">💼</span>
             <span className="nav-text">Jobs</span>
           </Link>
+          {user && (
+            <Link 
+              to="/membership" 
+              className={location.pathname === "/membership" ? "nav-link active" : "nav-link"}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <span className="nav-icon">⭐</span>
+              <span className="nav-text">Membership</span>
+            </Link>
+          )}
         </nav>
         
         <div className="header-user">
@@ -67,6 +77,7 @@ function EnhancedHeader({ user, login, logout }) {
               <Link to="/profile" className="user-info" onClick={() => setIsMobileMenuOpen(false)}>
                 <img src={user.photoURL} alt="profile" className="user-avatar" />
                 <span className="user-name">{user.displayName}</span>
+                {isPremium && <span className="premium-badge">PRO</span>}
               </Link>
               <button onClick={logout} className="logout-btn">
                 <span className="logout-icon">🚪</span>

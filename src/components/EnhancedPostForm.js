@@ -3,18 +3,13 @@ import { db } from "../firebase";
 import { 
   collection, 
   addDoc, 
-  serverTimestamp, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
-  getDocs 
+  serverTimestamp
 } from "firebase/firestore";
 import TagSelector from "./TagSelector";
 import "./EnhancedPostForm.css";
 import "./Modal.css";
 
-const POST_LIMIT_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const MINIMUM_WORD_COUNT = 150;
 
 function EnhancedPostForm({ user, onPostSuccess }) {
   const [title, setTitle] = useState("");
@@ -36,33 +31,16 @@ function EnhancedPostForm({ user, onPostSuccess }) {
       return;
     }
 
+    // New client-side validation for word count
+    const wordCount = content.trim().split(/\s+/).length;
+    if (wordCount < MINIMUM_WORD_COUNT) {
+      setModalMessage(`Your article must contain at least ${MINIMUM_WORD_COUNT} words. Please add more content.`);
+      setShowModal(true);
+      return;
+    }
+
     setIsSubmitting(true);
     setMessage("");
-
-    // Check if the user has already posted today
-    const now = new Date();
-    const oneDayAgo = new Date(now.getTime() - POST_LIMIT_DURATION_MS);
-    
-    try {
-      const q = query(
-        collection(db, "posts"),
-        where("uid", "==", user.uid),
-        where("createdAt", ">", oneDayAgo),
-        limit(1)
-      );
-      const querySnapshot = await getDocs(q);
-      
-      // If the query returns any documents, it means the user has posted within the last 24 hours.
-      if (!querySnapshot.empty) {
-        setModalMessage("For now, we are limiting one article post per day to manage high demand. The limit will be removed soon, and you can upload unlimited articles!");
-        setShowModal(true);
-        setIsSubmitting(false);
-        return;
-      }
-    } catch (error) {
-      // Log the error but don't prevent the post, especially for first-time posters.
-      console.error("Error checking post limit:", error);
-    }
 
     try {
       await addDoc(collection(db, "posts"), {
@@ -155,7 +133,7 @@ function EnhancedPostForm({ user, onPostSuccess }) {
         <div className="modal-backdrop">
           <div className="modal-content">
             <div className="modal-header">
-              <h2>Post Limit Reached</h2>
+              <h2>Article Too Short</h2>
               <button className="close-button" onClick={() => setShowModal(false)}>&times;</button>
             </div>
             <p>{modalMessage}</p>
@@ -219,19 +197,7 @@ function EnhancedPostForm({ user, onPostSuccess }) {
           />
           
           <div className="content-tips">
-            <p>Quick inserts:</p>
-            <div className="quick-inserts">
-              <button type="button" onClick={() => insertPlaceholder('\n## Subheading\n')}>
-                Add Subheading
-              </button>
-              <button type="button" onClick={() => insertPlaceholder('\n- List item\n')}>
-                Add List
-              </button>
-              <button type="button" onClick={() => insertPlaceholder('\n```\nCode block\n```\n')}>
-                Add Code Block
-              </button>
-            </div>
-            <p className="markdown-tip">Pro Tip: Use Markdown for formatting (## for headers, **bold**, _italic_, etc.)</p>
+            <p>Pro Tip: Use Markdown for formatting (## for headers, **bold**, _italic_, etc.)</p>
           </div>
         </div>
 

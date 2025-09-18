@@ -7,11 +7,13 @@ Below is the list of packages added to the project:
 - **react** – Frontend library  
 - **react-dom** – DOM bindings for React  
 - **firebase** – Firebase SDK (Authentication, Firestore, Storage)
+- 
 
 ### Additional Packages
 - **react-router-dom** – For navigation between pages  
 - **uuid** – To generate unique IDs for posts and comments  
 - **date-fns** – To format and manage timestamps
+- npm install react-helmet-async
 
 ### Styling (choose based on implementation)
 - **Tailwind CSS**  

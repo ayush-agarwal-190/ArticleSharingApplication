@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { db } from "../firebase";
-import { 
-  doc, 
-  getDoc, 
-  collection, 
-  addDoc, 
-  serverTimestamp, 
-  onSnapshot, 
-  query, 
-  orderBy, 
+import {
+  doc,
+  getDoc,
+  collection,
+  addDoc,
+  serverTimestamp,
+  onSnapshot,
+  query,
+  orderBy,
   deleteDoc,
   updateDoc,
   arrayUnion,
@@ -19,6 +19,7 @@ import { calculateReadingTime } from "../utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "./ArticlePage.css";
+import "./ArticlePage-comments.css"; // Keep your comment styles
 
 function ArticlePage({ user }) {
   const { articleId } = useParams();
@@ -27,349 +28,209 @@ function ArticlePage({ user }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
-  const [fontSize, setFontSize] = useState("medium");
   const [userVote, setUserVote] = useState(null);
 
   useEffect(() => {
     let unsubscribeArticle;
     let unsubscribeComments;
     
-    const fetchArticleAndComments = async () => {
-      try {
-        const docRef = doc(db, "posts", articleId);
-        
-        unsubscribeArticle = onSnapshot(docRef, async (docSnap) => {
-          if (docSnap.exists()) {
-            const articleData = { id: docSnap.id, ...docSnap.data() };
-            setArticle(articleData);
-            
-            if (user) {
-              if (articleData.upvotes?.includes(user.uid)) {
-                setUserVote('upvote');
-              } else if (articleData.downvotes?.includes(user.uid)) {
-                setUserVote('downvote');
-              } else {
-                setUserVote(null);
-              }
-            }
-            
-            if (articleData.uid) {
-              const authorDoc = await getDoc(doc(db, "users", articleData.uid));
-              if (authorDoc.exists()) {
-                setAuthorProfile(authorDoc.data());
-              }
-            }
-          } else {
-            console.log("No such article!");
-            setArticle(null);
-          }
-          setLoading(false);
-        });
-
-        const commentsRef = collection(db, "posts", articleId, "comments");
-        const qComments = query(commentsRef, orderBy("createdAt", "asc"));
-        
-        unsubscribeComments = onSnapshot(qComments, (snapshot) => {
-          const commentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setComments(commentsData);
-        });
-
-      } catch (error) {
-        console.error("Error fetching article or comments:", error);
-        setLoading(false);
-      }
-    };
-
     if (articleId) {
-      fetchArticleAndComments();
+      const docRef = doc(db, "posts", articleId);
+      
+      unsubscribeArticle = onSnapshot(docRef, async (docSnap) => {
+        if (docSnap.exists()) {
+          const articleData = { id: docSnap.id, ...docSnap.data() };
+          setArticle(articleData);
+          
+          if (user) {
+            setUserVote(
+              articleData.upvotes?.includes(user.uid) ? 'upvote' :
+              articleData.downvotes?.includes(user.uid) ? 'downvote' : null
+            );
+          }
+          
+          if (articleData.uid) {
+            const authorDoc = await getDoc(doc(db, "users", articleData.uid));
+            if (authorDoc.exists()) setAuthorProfile(authorDoc.data());
+          }
+        } else {
+          setArticle(null);
+        }
+        setLoading(false);
+      });
+
+      const commentsRef = collection(db, "posts", articleId, "comments");
+      const qComments = query(commentsRef, orderBy("createdAt", "asc"));
+      unsubscribeComments = onSnapshot(qComments, (snapshot) => {
+        setComments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
     }
     
     return () => {
       if (unsubscribeArticle) unsubscribeArticle();
       if (unsubscribeComments) unsubscribeComments();
     };
-    
   }, [articleId, user]);
 
-  const handleAddComment = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim() || !user) return;
-    try {
-      await addDoc(collection(db, "posts", articleId, "comments"), {
-        content: newComment,
-        author: user.displayName,
-        authorId: user.uid,
-        authorPhoto: user.photoURL,
-        createdAt: serverTimestamp(),
-      });
-      setNewComment("");
-    } catch (error) {
-      console.error("Error adding comment:", error);
-    }
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    if (window.confirm("Are you sure you want to delete this comment?")) {
-      try {
-        await deleteDoc(doc(db, "posts", articleId, "comments", commentId));
-      } catch (error) {
-        console.error("Error deleting comment:", error);
-      }
-    }
-  };
-  
   const handleVote = async (voteType) => {
     if (!user) return;
     const docRef = doc(db, "posts", articleId);
     
-    const upvoteToAdd = voteType === 'upvote' ? user.uid : null;
-    const downvoteToAdd = voteType === 'downvote' ? user.uid : null;
-    const upvoteToRemove = userVote === 'upvote' ? user.uid : (voteType === 'downvote' ? user.uid : null);
-    const downvoteToRemove = userVote === 'downvote' ? user.uid : (voteType === 'upvote' ? user.uid : null);
-    
     const updates = {};
-    if (upvoteToAdd) updates.upvotes = arrayUnion(upvoteToAdd);
-    if (downvoteToAdd) updates.downvotes = arrayUnion(downvoteToAdd);
-    if (upvoteToRemove) updates.upvotes = arrayRemove(upvoteToRemove);
-    if (downvoteToRemove) updates.downvotes = arrayRemove(downvoteToRemove);
+    const isCurrentlyUpvoted = userVote === 'upvote';
+    const isCurrentlyDownvoted = userVote === 'downvote';
 
-    if (Object.keys(updates).length > 0) {
-      try {
-        await updateDoc(docRef, updates);
-      } catch (error) {
-        console.error("Error updating vote:", error);
-      }
+    if (voteType === 'upvote') {
+        updates.upvotes = isCurrentlyUpvoted ? arrayRemove(user.uid) : arrayUnion(user.uid);
+        if (isCurrentlyDownvoted) updates.downvotes = arrayRemove(user.uid);
+    } else if (voteType === 'downvote') {
+        updates.downvotes = isCurrentlyDownvoted ? arrayRemove(user.uid) : arrayUnion(user.uid);
+        if (isCurrentlyUpvoted) updates.upvotes = arrayRemove(user.uid);
     }
+    
+    await updateDoc(docRef, updates);
   };
 
-  const handleDeleteArticle = async () => {
-    if (window.confirm("Are you sure you want to delete this article? This action cannot be undone.")) {
-      try {
-        await deleteDoc(doc(db, "posts", articleId));
-        window.location.href = "/articles"; 
-      } catch (error) {
-        console.error("Error deleting article:", error);
-        window.alert("Error deleting article. Please try again.");
-      }
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim() || !user) return;
+    await addDoc(collection(db, "posts", articleId, "comments"), {
+      content: newComment,
+      author: user.displayName,
+      authorId: user.uid,
+      authorPhoto: user.photoURL,
+      createdAt: serverTimestamp(),
+    });
+    setNewComment("");
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    // Basic confirmation dialog
+    if (window.confirm("Are you sure you want to delete this comment?")) {
+      await deleteDoc(doc(db, "posts", articleId, "comments", commentId));
     }
   };
 
   if (loading) {
     return (
-      <div className="article-page">
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Loading article...</p>
-        </div>
+      <div className="article-page-enhanced">
+        <div className="loading-container"><div className="spinner"></div><p>Loading article...</p></div>
       </div>
     );
   }
 
   if (!article) {
     return (
-      <div className="article-page">
-        <div className="error-container">
-          <h2>Article Not Found</h2>
-          <p>The article you're looking for doesn't exist.</p>
-          <Link to="/articles" className="btn-primary">
-            Back to Articles
-          </Link>
-        </div>
+      <div className="article-page-enhanced">
+        <div className="error-container"><h2>Article Not Found</h2><Link to="/articles" className="btn-primary">Back to Articles</Link></div>
       </div>
     );
   }
 
-  const isAuthor = user && article.uid === user.uid;
-  const isAdmin = user && user.email === "ayushagarwaldesk@gmail.com";
-  const upvoteCount = article.upvotes?.length || 0;
-  const downvoteCount = article.downvotes?.length || 0;
-  const authorDisplayName = isAdmin ? "Admin" : (article.author || "Anonymous");
-  
   return (
-    <div className="article-page">
-      <Link to="/articles" className="back-button">
-        ← Back to Articles
-      </Link>
-
-      <article className="article-container">
-        <header className="article-header">
-          <h1 className="article-title">{article.title}</h1>
-          
-          <div className="article-meta">
-            <div className="author-info">
-              {authorProfile?.photoURL ? (
-                <img src={authorProfile.photoURL} alt={article.author} className="author-avatar" />
-              ) : (
-                <div className="author-avatar">
-                  {article.author ? article.author.charAt(0).toUpperCase() : "A"}
-                </div>
-              )}
-              <div>
-                <div className="author-name">{authorDisplayName}</div>
-                {authorProfile?.department && (
-                  <div className="author-department">{authorProfile.department}</div>
-                )}
-              </div>
-            </div>
-            
-            <div className="article-stats">
-              <span>{calculateReadingTime(article.content)} min read</span>
-              <span>•</span>
-              <span>{article.createdAt?.toDate().toLocaleDateString()}</span>
-            </div>
+    <div className="article-page-enhanced">
+      <div className="article-layout">
+        {/* Main Article Content */}
+        <main className="article-main-content">
+          <header className="article-header-enhanced">
+            <Link to="/articles" className="back-link">
+              <span>←</span> Back to Articles
+            </Link>
+            <h1 className="article-title">{article.title}</h1>
+          </header>
+          <div className="article-content-prose">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.content}</ReactMarkdown>
           </div>
+        </main>
 
-          {article.tags && article.tags.length > 0 && (
-            <div className="article-tags">
-              {article.tags.map((tag, index) => (
-                <span key={index} className="tag">
-                  {tag}
-                </span>
-              ))}
+        {/* Sticky Sidebar */}
+        <aside className="article-sidebar">
+          {authorProfile && (
+            <div className="sidebar-card">
+              <h3>About the Author</h3>
+              <div className="author-info-sidebar">
+                <img src={authorProfile.photoURL} alt={authorProfile.displayName} className="author-avatar" />
+                <div className="author-details">
+                  <div className="author-name">{authorProfile.displayName}</div>
+                  <div className="author-dept">{authorProfile.department}</div>
+                </div>
+              </div>
+              <Link to={`/profile/${article.uid}`} className="view-profile-btn">View Profile</Link>
             </div>
           )}
-        </header>
 
-        <div className="article-content-container">
-          <div className="text-size-controls">
-            <span>Text size:</span>
-            <button 
-              className={fontSize === "small" ? "active" : ""} 
-              onClick={() => setFontSize("small")}
-            >
-              S
-            </button>
-            <button 
-              className={fontSize === "medium" ? "active" : ""} 
-              onClick={() => setFontSize("medium")}
-            >
-              M
-            </button>
-            <button 
-              className={fontSize === "large" ? "active" : ""} 
-              onClick={() => setFontSize("large")}
-            >
-              L
-            </button>
-          </div>
-
-          <div className={`article-content ${fontSize}`}>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {article.content}
-            </ReactMarkdown>
-          </div>
-        </div>
-        
-        <div className="vote-section">
-          <button 
-            className={`vote-btn upvote-btn ${userVote === 'upvote' ? 'active' : ''}`}
-            onClick={() => handleVote('upvote')}
-            disabled={!user}
-          >
-            👍 {upvoteCount}
-          </button>
-          <button 
-            className={`vote-btn downvote-btn ${userVote === 'downvote' ? 'active' : ''}`}
-            onClick={() => handleVote('downvote')}
-            disabled={!user}
-          >
-            👎
-          </button>
-          {(isAuthor || isAdmin) && (
-            <span className="downvote-count">
-              <span className="downvote-icon">👎</span> {downvoteCount}
-            </span>
-          )}
-        </div>
-
-        <footer className="article-footer">
-          <div className="author-card">
-            <h3>About the Author</h3>
-            <div className="author-details">
-              {authorProfile?.photoURL ? (
-                <img src={authorProfile.photoURL} alt={article.author} className="author-avatar-large" />
-              ) : (
-                <div className="author-avatar-large">
-                  {article.author ? article.author.charAt(0).toUpperCase() : "A"}
+          <div className="sidebar-card">
+            <h3>Article Details</h3>
+            <ul className="article-stats-sidebar">
+              <li><span className="icon">⏱️</span> {calculateReadingTime(article.content)} min read</li>
+              <li><span className="icon">📅</span> Published on {article.createdAt?.toDate().toLocaleDateString()}</li>
+            </ul>
+            {article.tags && article.tags.length > 0 && (
+              <>
+                <h4 style={{marginTop: '1.5rem', marginBottom: '1rem', fontSize: '1rem'}}>Topics</h4>
+                <div className="article-tags-sidebar">
+                  {article.tags.map(tag => <span key={tag} className="tag-item">{tag}</span>)}
                 </div>
-              )}
-              <div className="author-info-detailed">
-                <h4>{authorDisplayName}</h4>
-                {authorProfile?.department && (
-                  <p className="author-department">{authorProfile.department}</p>
-                )}
-                {authorProfile?.bio && (
-                  <p className="author-bio">{authorProfile.bio}</p>
-                )}
-                <Link to={`/profile/${article.uid}`} className="view-profile-btn">
-                  View Profile
-                </Link>
-                {(isAuthor || isAdmin) && (
-                  <button onClick={handleDeleteArticle} className="delete-article-btn">
-                    Delete Article
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <section className="comments-section">
-            <h3>Comments ({comments.length})</h3>
-            
-            {user ? (
-              <form onSubmit={handleAddComment} className="add-comment">
-                <textarea
-                  placeholder="Share your thoughts..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  rows="3"
-                />
-                <button type="submit" className="post-btn">
-                  Post Comment
-                </button>
-              </form>
-            ) : (
-              <p className="login-to-comment">
-                <Link to="/login">Log in</Link> to leave a comment
-              </p>
+              </>
             )}
+          </div>
 
-            <div className="comments-list">
-              {comments.length === 0 ? (
-                <p className="no-comments">No comments yet. Be the first to share your thoughts!</p>
-              ) : (
-                comments.map((comment) => (
-                  <div key={comment.id} className="comment">
-                    {comment.authorPhoto ? (
-                      <img src={comment.authorPhoto} alt={comment.author} className="comment-avatar" />
-                    ) : (
-                      <div className="comment-avatar">
-                        {comment.author ? comment.author.charAt(0).toUpperCase() : "U"}
-                      </div>
-                    )}
-                    <div className="comment-body">
-                      <div className="comment-header">
-                        <span className="comment-author">{comment.author}</span>
-                        <span className="comment-time">
-                          {comment.createdAt?.toDate().toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="comment-content">{comment.content}</p>
-                      {user && user.uid === comment.authorId && (
-                        <button onClick={() => handleDeleteComment(comment.id)} className="delete-btn">
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
+          <div className="sidebar-card">
+            <h3>Was this article helpful?</h3>
+            <div className="vote-section-sidebar">
+              <button
+                className={`vote-btn upvote-btn ${userVote === 'upvote' ? 'active' : ''}`}
+                onClick={() => handleVote('upvote')}
+                disabled={!user}
+              >
+                👍 {article.upvotes?.length || 0}
+              </button>
+              <button
+                className={`vote-btn downvote-btn ${userVote === 'downvote' ? 'active' : ''}`}
+                onClick={() => handleVote('downvote')}
+                disabled={!user}
+              >
+                👎 {article.downvotes?.length || 0}
+              </button>
             </div>
-          </section>
-        </footer>
-      </article>
+          </div>
+        </aside>
+      </div>
+
+      {/* Comments Section (remains below the content) */}
+      <div className="comments-section-container">
+        <section className="comments-section">
+          <h3>Comments ({comments.length})</h3>
+          {user ? (
+            <form onSubmit={handleAddComment} className="add-comment">
+              <textarea placeholder="Share your thoughts..." value={newComment} onChange={(e) => setNewComment(e.target.value)} />
+              <button type="submit" className="post-btn">Post Comment</button>
+            </form>
+          ) : (
+            <p className="login-to-comment"><Link to="/login">Log in</Link> to leave a comment</p>
+          )}
+          <div className="comments-list">
+            {comments.length > 0 ? comments.map(comment => (
+              <div key={comment.id} className="comment">
+                <img src={comment.authorPhoto} alt={comment.author} className="comment-avatar" />
+                <div className="comment-body">
+                  <div className="comment-header">
+                    <span className="comment-author">{comment.author}</span>
+                    <span className="comment-time">{comment.createdAt?.toDate().toLocaleDateString()}</span>
+                  </div>
+                  <p className="comment-content">{comment.content}</p>
+                  {user && user.uid === comment.authorId && (
+                    <button onClick={() => handleDeleteComment(comment.id)} className="delete-btn">Delete</button>
+                  )}
+                </div>
+              </div>
+            )) : <p className="no-comments">Be the first to share your thoughts!</p>}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
 
 export default ArticlePage;
+
