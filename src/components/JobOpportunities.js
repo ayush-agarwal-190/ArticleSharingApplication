@@ -15,24 +15,28 @@ function JobOpportunities({ user }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
 
+  // Use a standardized array for both the buttons and the Firestore data.
+  const yearOptions = ["1st year", "2nd year", "3rd year", "final year", "freshers"];
+
   useEffect(() => {
-    // Check if user is the admin
+    let unsubscribe = () => {};
+
     if (user && user.email === "ayushagarwaldesk@gmail.com") {
       setIsAdmin(true);
     } else {
       setIsAdmin(false);
     }
 
-    // Fetch job opportunities based on the selected filter
     let q = collection(db, "jobOpportunities");
     
+    // Apply the filter only if a specific year is selected
     if (yearFilter !== "all") {
       q = query(q, where("year", "==", yearFilter));
     }
     
     q = query(q, orderBy("createdAt", "desc"));
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+    unsubscribe = onSnapshot(q, (querySnapshot) => {
       const jobsData = [];
       querySnapshot.forEach((doc) => {
         jobsData.push({ id: doc.id, ...doc.data() });
@@ -58,18 +62,20 @@ function JobOpportunities({ user }) {
         description,
         link,
         location,
-        year: yearFilter,
+        // The year is saved in a standardized, lowercase format to match the filter
+        year: yearFilter === "all" ? "freshers" : yearFilter,
         createdAt: serverTimestamp(),
         postedBy: user.uid,
-        author: user.displayName
+        author: user.displayName,
       });
       
-      // Reset form
+      // Reset form fields
       setTitle("");
       setCompany("");
       setDescription("");
       setLink("");
       setLocation("");
+      setYearFilter("all"); // Reset the filter state after posting
       setShowForm(false);
       
       window.alert("Job opportunity posted successfully!");
@@ -130,12 +136,10 @@ function JobOpportunities({ user }) {
             <div className="form-group">
               <label>Target Year</label>
               <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} required>
-                <option value="all">Select a year...</option>
-                <option value="1st year">1st Year</option>
-                <option value="2nd year">2nd Year</option>
-                <option value="3rd year">3rd Year</option>
-                <option value="final year">Final Year</option>
-                <option value="freshers">Freshers</option>
+                <option value="">Select a year...</option>
+                {yearOptions.map(year => (
+                  <option key={year} value={year}>{year.replace(/\b\w/g, c => c.toUpperCase())}</option>
+                ))}
               </select>
             </div>
             <div className="form-group">
@@ -166,13 +170,19 @@ function JobOpportunities({ user }) {
       <div className="filter-controls">
         <h3>Filter by Year:</h3>
         <div className="filter-buttons">
-          {["all", "1st year", "2nd year", "3rd year", "final year", "freshers"].map((year) => (
+          <button
+            className={`filter-btn ${yearFilter === "all" ? "active" : ""}`}
+            onClick={() => setYearFilter("all")}
+          >
+            All Years
+          </button>
+          {yearOptions.map((year) => (
             <button
               key={year}
               className={`filter-btn ${yearFilter === year ? "active" : ""}`}
               onClick={() => setYearFilter(year)}
             >
-              {year === "all" ? "All Years" : year.replace(/\b\w/g, c => c.toUpperCase())}
+              {year.replace(/\b\w/g, c => c.toUpperCase())}
             </button>
           ))}
         </div>

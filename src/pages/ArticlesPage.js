@@ -12,7 +12,7 @@ import {
 import { calculateReadingTime, formatDate, generateExcerpt } from "../utils";
 import "./ArticlesPage.css";
 
-function ArticlesPage() {
+function ArticlesPage({ user }) {
   const [posts, setPosts] = useState([]);
   const [filterTag, setFilterTag] = useState("");
   const [userProfiles, setUserProfiles] = useState({});
@@ -198,6 +198,10 @@ function ArticlesPage() {
               filteredPosts.map((post) => {
                 const userProfile = getUserProfile(post.uid);
                 const upvoteCount = post.upvotes?.length || 0;
+                
+                const isAuthorAdmin = post.uid === user?.uid && user?.email === "ayushagarwaldesk@gmail.com";
+                const authorDisplayName = isAuthorAdmin ? "Admin" : (post.author || "Anonymous");
+
                 return (
                   <article key={post.id} className="article-card">
                     <Link
@@ -243,7 +247,7 @@ function ArticlesPage() {
                           )}
                           <div className="author-info">
                             <p className="author-name">
-                              {post.author || "Anonymous"}
+                              {authorDisplayName}
                             </p>
                             {userProfile.department && (
                               <p className="author-dept">

@@ -84,7 +84,6 @@ function ArticlePage({ user }) {
       fetchArticleAndComments();
     }
     
-    // This is the crucial part: always return a function that calls the unsubscribers.
     return () => {
       if (unsubscribeArticle) unsubscribeArticle();
       if (unsubscribeComments) unsubscribeComments();
@@ -150,7 +149,7 @@ function ArticlePage({ user }) {
         window.location.href = "/articles"; 
       } catch (error) {
         console.error("Error deleting article:", error);
-        alert("Error deleting article. Please try again.");
+        window.alert("Error deleting article. Please try again.");
       }
     }
   };
@@ -181,8 +180,10 @@ function ArticlePage({ user }) {
   }
 
   const isAuthor = user && article.uid === user.uid;
+  const isAdmin = user && user.email === "ayushagarwaldesk@gmail.com";
   const upvoteCount = article.upvotes?.length || 0;
   const downvoteCount = article.downvotes?.length || 0;
+  const authorDisplayName = isAdmin ? "Admin" : (article.author || "Anonymous");
   
   return (
     <div className="article-page">
@@ -204,7 +205,7 @@ function ArticlePage({ user }) {
                 </div>
               )}
               <div>
-                <div className="author-name">{article.author}</div>
+                <div className="author-name">{authorDisplayName}</div>
                 {authorProfile?.department && (
                   <div className="author-department">{authorProfile.department}</div>
                 )}
@@ -274,7 +275,7 @@ function ArticlePage({ user }) {
           >
             👎
           </button>
-          {isAuthor && (
+          {(isAuthor || isAdmin) && (
             <span className="downvote-count">
               <span className="downvote-icon">👎</span> {downvoteCount}
             </span>
@@ -293,7 +294,7 @@ function ArticlePage({ user }) {
                 </div>
               )}
               <div className="author-info-detailed">
-                <h4>{article.author}</h4>
+                <h4>{authorDisplayName}</h4>
                 {authorProfile?.department && (
                   <p className="author-department">{authorProfile.department}</p>
                 )}
@@ -303,9 +304,9 @@ function ArticlePage({ user }) {
                 <Link to={`/profile/${article.uid}`} className="view-profile-btn">
                   View Profile
                 </Link>
-                {isAuthor && (
+                {(isAuthor || isAdmin) && (
                   <button onClick={handleDeleteArticle} className="delete-article-btn">
-                    Delete My Article
+                    Delete Article
                   </button>
                 )}
               </div>

@@ -54,10 +54,10 @@ function UserProfilePage({ user }) {
     if (window.confirm("Are you sure you want to delete this article?")) {
       try {
         await deleteDoc(doc(db, "posts", postId));
-        alert("Article deleted successfully!");
+        window.alert("Article deleted successfully!");
       } catch (error) {
         console.error("Error deleting article:", error);
-        alert("Error deleting article. Please try again.");
+        window.alert("Error deleting article. Please try again.");
       }
     }
   };
@@ -86,7 +86,10 @@ function UserProfilePage({ user }) {
       </div>
     );
   }
+  
   const isCurrentUserProfile = user && user.uid === userId;
+  const isAdmin = user && user.email === "ayushagarwaldesk@gmail.com";
+  const profileDisplayName = isAdmin ? "Admin" : (profile.displayName || "Anonymous");
   
   return (
     <div className="profile-page">
@@ -104,7 +107,7 @@ function UserProfilePage({ user }) {
             </div>
           )}
           <div className="profile-details">
-            <h1>{profile.displayName}</h1>
+            <h1>{profileDisplayName}</h1>
             <div className="profile-meta">
               {profile.department && <span>{profile.department}</span>}
               {profile.year && <span> • {profile.year}</span>}
@@ -148,7 +151,7 @@ function UserProfilePage({ user }) {
         </aside>
 
         <main className="profile-main">
-          <h2>Articles by {profile.displayName}</h2>
+          <h2>Articles by {profileDisplayName}</h2>
 
           {userPosts.length === 0 ? (
             <div className="no-posts">
@@ -178,7 +181,7 @@ function UserProfilePage({ user }) {
                       )}
                     </div>
                   </Link>
-                  {isCurrentUserProfile && (
+                  {(isCurrentUserProfile || isAdmin) && (
                     <button className="delete-btn" onClick={() => handleDelete(post.id)}>
                       Delete
                     </button>

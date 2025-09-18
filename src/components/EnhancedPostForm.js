@@ -1,9 +1,20 @@
-// src/components/EnhancedPostForm.js
 import React, { useState } from "react";
 import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { 
+  collection, 
+  addDoc, 
+  serverTimestamp, 
+  query, 
+  where, 
+  orderBy, 
+  limit, 
+  getDocs 
+} from "firebase/firestore";
 import TagSelector from "./TagSelector";
-import "./EnhancedPostForm.css"; // New CSS file for styling
+import "./EnhancedPostForm.css";
+import "./Modal.css";
+
+const POST_LIMIT_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 function EnhancedPostForm({ user, onPostSuccess }) {
   const [title, setTitle] = useState("");
@@ -11,9 +22,15 @@ function EnhancedPostForm({ user, onPostSuccess }) {
   const [tags, setTags] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
 
   const handlePost = async (e) => {
     e.preventDefault();
+    if (!user) {
+      setMessage("You must be logged in to post an article.");
+      return;
+    }
     if (!title.trim() || !content.trim()) {
       setMessage("Please add both a title and content to your article.");
       return;
@@ -21,6 +38,31 @@ function EnhancedPostForm({ user, onPostSuccess }) {
 
     setIsSubmitting(true);
     setMessage("");
+
+    // Check if the user has already posted today
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - POST_LIMIT_DURATION_MS);
+    
+    try {
+      const q = query(
+        collection(db, "posts"),
+        where("uid", "==", user.uid),
+        where("createdAt", ">", oneDayAgo),
+        limit(1)
+      );
+      const querySnapshot = await getDocs(q);
+      
+      // If the query returns any documents, it means the user has posted within the last 24 hours.
+      if (!querySnapshot.empty) {
+        setModalMessage("For now, we are limiting one article post per day to manage high demand. The limit will be removed soon, and you can upload unlimited articles!");
+        setShowModal(true);
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (error) {
+      // Log the error but don't prevent the post, especially for first-time posters.
+      console.error("Error checking post limit:", error);
+    }
 
     try {
       await addDoc(collection(db, "posts"), {
@@ -30,6 +72,8 @@ function EnhancedPostForm({ user, onPostSuccess }) {
         author: user.displayName,
         uid: user.uid,
         createdAt: serverTimestamp(),
+        upvotes: [],
+        downvotes: []
       });
       setTitle("");
       setContent("");
@@ -107,6 +151,20 @@ function EnhancedPostForm({ user, onPostSuccess }) {
 
   return (
     <div className="enhanced-post-form">
+      {showModal && (
+        <div className="modal-backdrop">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Post Limit Reached</h2>
+              <button className="close-button" onClick={() => setShowModal(false)}>&times;</button>
+            </div>
+            <p>{modalMessage}</p>
+            <div className="modal-footer">
+              <button className="btn-primary" onClick={() => setShowModal(false)}>Got it!</button>
+            </div>
+          </div>
+        </div>
+      )}
       <h2>Write a New Article</h2>
       
       {message && (
