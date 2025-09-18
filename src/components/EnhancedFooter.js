@@ -17,6 +17,7 @@ function EnhancedFooter() {
             <ul>
               <li><a href="/articles">Browse Articles</a></li>
               <li><a href="/write">Write Article</a></li>
+              <li><a href="/jobs">Job Opportunities</a></li>
               <li><a href="/about">About Us</a></li>
             </ul>
           </div>

@@ -1,7 +1,9 @@
+// src/components/EnhancedPostForm.js
 import React, { useState } from "react";
 import { db } from "../firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import TagSelector from "./TagSelector";
+import "./EnhancedPostForm.css"; // New CSS file for styling
 
 function EnhancedPostForm({ user, onPostSuccess }) {
   const [title, setTitle] = useState("");
@@ -26,7 +28,7 @@ function EnhancedPostForm({ user, onPostSuccess }) {
         content,
         tags,
         author: user.displayName,
-        uid: user.uid, // Include UID for security rules
+        uid: user.uid,
         createdAt: serverTimestamp(),
       });
       setTitle("");
@@ -35,7 +37,6 @@ function EnhancedPostForm({ user, onPostSuccess }) {
       setMessage("Article published successfully!");
       if (onPostSuccess) onPostSuccess();
       
-      // Clear success message after 3 seconds
       setTimeout(() => setMessage(""), 3000);
     } catch (error) {
       console.error("Error posting article:", error);
@@ -46,13 +47,12 @@ function EnhancedPostForm({ user, onPostSuccess }) {
   };
 
   const handleKeyDown = (e) => {
-    // Allow tab key to work in textarea
     if (e.key === 'Tab') {
       e.preventDefault();
       const start = e.target.selectionStart;
       const end = e.target.selectionEnd;
-      setContent(content.substring(0, start) + '\t' + content.substring(end));
-      // Move the cursor
+      const newContent = content.substring(0, start) + '\t' + content.substring(end);
+      setContent(newContent);
       e.target.selectionStart = e.target.selectionEnd = start + 1;
     }
   };
@@ -87,7 +87,6 @@ function EnhancedPostForm({ user, onPostSuccess }) {
     
     setContent(content.substring(0, start) + formattedText + content.substring(end));
     
-    // Set cursor position after the formatted text
     setTimeout(() => {
       textarea.selectionStart = start + formattedText.length;
       textarea.selectionEnd = start + formattedText.length;
@@ -98,7 +97,6 @@ function EnhancedPostForm({ user, onPostSuccess }) {
   const insertPlaceholder = (placeholder) => {
     setContent(content + placeholder);
     
-    // Focus on the textarea and position cursor
     setTimeout(() => {
       const textarea = document.getElementById('content-textarea');
       textarea.focus();

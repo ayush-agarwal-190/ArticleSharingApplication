@@ -9,6 +9,7 @@ import {
   doc,
   getDoc,
 } from "firebase/firestore";
+import { calculateReadingTime, formatDate, generateExcerpt } from "../utils";
 import "./ArticlesPage.css";
 
 function ArticlesPage() {
@@ -19,20 +20,17 @@ function ArticlesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState(null);
 
-  // Debounced search to reduce excessive filtering calls
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
     }, 300);
-
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
   useEffect(() => {
     const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
-
     const unsubscribe = onSnapshot(
       q,
       async (snapshot) => {
@@ -43,13 +41,8 @@ function ArticlesPage() {
           }));
           setPosts(postsData);
 
-          // Efficiently fetch only needed user profiles
-          const uniqueUserIds = [
-            ...new Set(postsData.map((post) => post.uid).filter(Boolean)),
-          ];
-          const profilesToFetch = uniqueUserIds.filter(
-            (uid) => !userProfiles[uid]
-          );
+          const uniqueUserIds = [...new Set(postsData.map((post) => post.uid).filter(Boolean))];
+          const profilesToFetch = uniqueUserIds.filter((uid) => !userProfiles[uid]);
 
           if (profilesToFetch.length > 0) {
             const profiles = {};
@@ -63,11 +56,9 @@ function ArticlesPage() {
                 console.error(`Error fetching profile for ${uid}:`, error);
               }
             });
-
             await Promise.allSettled(profilePromises);
             setUserProfiles((prev) => ({ ...prev, ...profiles }));
           }
-
           setLoading(false);
           setError(null);
         } catch (err) {
@@ -82,52 +73,17 @@ function ArticlesPage() {
         setLoading(false);
       }
     );
-
     return unsubscribe;
   }, [userProfiles]);
 
-  // Calculate reading time (words per minute)
-  const calculateReadingTime = useCallback((content) => {
-    if (!content) return 0;
-    const wordsPerMinute = 200;
-    const words = content.trim().split(/\s+/).length;
-    return Math.max(1, Math.ceil(words / wordsPerMinute));
-  }, []);
-
-  // Format date with friendly display
-  const formatDate = useCallback((timestamp) => {
-    if (!timestamp) return "Date not available";
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      const now = new Date();
-      const diffTime = Math.abs(now - date);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) return "Yesterday";
-      if (diffDays <= 7) return `${diffDays} days ago`;
-
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-      });
-    } catch (error) {
-      console.error("Error formatting date:", error);
-      return "Date not available";
-    }
-  }, []);
-
-  // Extract and sort tags
   const allTags = useMemo(() => {
     const tags = posts.flatMap((post) => post.tags || []);
     return [...new Set(tags)].sort();
   }, [posts]);
 
-  // Filter posts by tag and search query
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
       const matchesTag = !filterTag || (post.tags && post.tags.includes(filterTag));
-
       const searchLower = debouncedSearchQuery.toLowerCase();
       const matchesSearch =
         !debouncedSearchQuery ||
@@ -135,32 +91,11 @@ function ArticlesPage() {
         post.content.toLowerCase().includes(searchLower) ||
         post.author.toLowerCase().includes(searchLower) ||
         (post.tags && post.tags.some((tag) => tag.toLowerCase().includes(searchLower)));
-
       return matchesTag && matchesSearch;
     });
   }, [posts, filterTag, debouncedSearchQuery]);
 
-  // Safely get user profile by uid
-  const getUserProfile = useCallback(
-    (uid) => userProfiles[uid] || {},
-    [userProfiles]
-  );
-
-  // Generate article excerpt without cutting words abruptly
-  const generateExcerpt = useCallback((content, maxLength = 150) => {
-    if (!content) return "No content available...";
-
-    const cleanContent = content.replace(/<[^>]*>/g, "");
-
-    if (cleanContent.length <= maxLength) return cleanContent;
-
-    const truncated = cleanContent.substring(0, maxLength);
-    const lastSpace = truncated.lastIndexOf(" ");
-
-    return lastSpace > maxLength * 0.8
-      ? truncated.substring(0, lastSpace) + "..."
-      : truncated + "...";
-  }, []);
+  const getUserProfile = useCallback((uid) => userProfiles[uid] || {}, [userProfiles]);
 
   if (loading) {
     return (
@@ -262,6 +197,7 @@ function ArticlesPage() {
             ) : (
               filteredPosts.map((post) => {
                 const userProfile = getUserProfile(post.uid);
+                const upvoteCount = post.upvotes?.length || 0;
                 return (
                   <article key={post.id} className="article-card">
                     <Link
@@ -316,9 +252,14 @@ function ArticlesPage() {
                             )}
                           </div>
                         </div>
-                        <span className="read-more">
-                          Read more →
-                        </span>
+                        <div className="vote-counts">
+                          <span className="upvotes-count">
+                            👍 {upvoteCount}
+                          </span>
+                          <span className="read-more">
+                            Read more →
+                          </span>
+                        </div>
                       </footer>
                     </Link>
                   </article>

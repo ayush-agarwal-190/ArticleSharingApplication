@@ -535,7 +535,7 @@
 
 .loading-container p {
   font-size: 1.2rem;
-  color: #64748b;
+  color: #1a1b1d;
   font-weight: 600;
 }
 
@@ -567,15 +567,15 @@
     padding: 1.5rem 1rem;
   }
 
-  .page-header {
-    padding: 2rem 1.5rem;
-    margin-bottom: 2rem;
-  }
+.page-header {
+  padding: 2rem 1.5rem;
+  margin-bottom: 2rem;
+  background-color: #1e1f20; /* Light blue background */
+}
 
-  .page-header h1 {
-    font-size: 2.5rem;
-  }
-
+.page-header h1 {
+  font-size: 2.5rem;
+}
   .main-content {
     padding: 1.5rem;
   }
@@ -674,4 +674,8 @@
 .article-card:focus-within {
   outline: 3px solid rgba(102, 126, 234, 0.5);
   outline-offset: 2px;
+}
+
+.articles-page .subtitle {
+  color: black;
 }

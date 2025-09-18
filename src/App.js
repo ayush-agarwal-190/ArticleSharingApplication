@@ -1,16 +1,18 @@
-// src/App.js (updated)
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "./firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { auth, db } from "./firebase";
 import { loginWithGoogle } from "./auth";
 import EnhancedHeader from "./components/EnhancedHeader";
 import EnhancedFooter from "./components/EnhancedFooter";
 import EnhancedPostForm from "./components/EnhancedPostForm";
 import ArticlesPage from "./pages/ArticlesPage";
 import ArticlePage from "./pages/ArticlePage";
+import MyArticlesPage from "./pages/MyArticlesPage"; // New Import
 import UserProfilePage from "./pages/UserProfilePage";
 import ProfileForm from "./components/ProfileForm";
+import JobOpportunities from "./components/JobOpportunities";
 import "./styles.css";
 
 function App() {
@@ -18,13 +20,25 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState({ message: "", type: "" });
 
-  // Track user authentication state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       setLoading(false);
       
       if (currentUser) {
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        
+        if (!userSnap.exists()) {
+          await setDoc(userRef, {
+            uid: currentUser.uid,
+            displayName: currentUser.displayName,
+            email: currentUser.email,
+            photoURL: currentUser.photoURL,
+            createdAt: new Date(),
+          }, { merge: true });
+        }
+        
         showNotification(`Welcome back, ${currentUser.displayName || 'User'}!`, "success");
       }
     });
@@ -74,7 +88,7 @@ function App() {
               onClick={() => setNotification({ message: "", type: "" })}
               className="notification-close"
             >
-              Ã—
+              &times;
             </button>
           </div>
         )}
@@ -85,7 +99,25 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/articles" replace />} />
             <Route path="/articles" element={<ArticlesPage />} />
-            <Route path="/article/:articleId" element={<ArticlePage />} />
+            <Route path="/article/:articleId" element={<ArticlePage user={user} />} />
+            <Route 
+              path="/my-articles" 
+              element={
+                user ? (
+                  <MyArticlesPage user={user} />
+                ) : (
+                  <div className="auth-required">
+                    <div className="auth-card">
+                      <h2>Login Required</h2>
+                      <p>Please log in to view your articles.</p>
+                      <button onClick={handleLogin} className="login-button">
+                        Login with Google
+                      </button>
+                    </div>
+                  </div>
+                )
+              } 
+            />
             <Route 
               path="/write" 
               element={
@@ -130,6 +162,7 @@ function App() {
               } 
             />
             <Route path="/profile/:userId" element={<UserProfilePage />} />
+            <Route path="/jobs" element={<JobOpportunities user={user} />} />
             <Route 
               path="/about" 
               element={
@@ -154,7 +187,7 @@ function App() {
                     </ol>
                     
                     <div className="about-footer">
-                      <p>Made with â¤ï¸ for the student community</p>
+                      <p>Made with ❤️ for the student community</p>
                     </div>
                   </div>
                 </div>
