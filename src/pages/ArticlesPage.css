@@ -138,12 +138,14 @@
 }
 
 .search-box::before {
+  content: "🔍";
   position: absolute;
   left: 1.2rem;
   top: 50%;
   transform: translateY(-50%);
   font-size: 1.1rem;
   z-index: 2;
+  color: #64748b;
 }
 
 .articles-count {
@@ -276,11 +278,6 @@
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-
-.article-card:hover .read-more {
-  color: #764ba2;
-  transform: translateX(3px);
-}
 .author {
   display: flex;
   align-items: center;  /* Vertically center */
@@ -328,11 +325,12 @@
   font-weight: 700;
   font-size: 1rem;
   white-space: nowrap;
+  transition: all 0.3s ease;
 }
 
-
-.article-card:hover .read-more::after {
-  transform: translateX(5px);
+.article-card:hover .read-more {
+  color: #764ba2;
+  transform: translateX(3px);
 }
 
 /* Sidebar Styles */
@@ -383,6 +381,52 @@
   border-color: #667eea;
   font-weight: 700;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Stats box */
+.stats-box {
+  padding: 1rem;
+  background: rgba(68, 160, 133, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(68, 160, 133, 0.3);
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.stats-box span {
+  font-weight: 700;
+}
+
+/* Popular tags */
+.popular-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.popular-tags button {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  background: rgba(248, 250, 252, 0.85);
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.popular-tags button.active,
+.popular-tags button:hover {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 0 12px rgba(118, 75, 162, 0.6);
+  border: none;
 }
 
 /* No Articles State */
@@ -447,6 +491,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   cursor: pointer;
+  border: none;
 }
 
 .btn-primary:hover {
@@ -629,111 +674,4 @@
 .article-card:focus-within {
   outline: 3px solid rgba(102, 126, 234, 0.5);
   outline-offset: 2px;
-}
-.search-box {
-  position: relative;
-  flex-grow: 1;
-  max-width: 450px;
-  min-width: 0; /* Added to avoid shrinking issues in flex containers */
-}
-
-.search-box input {
-  width: 100%;
-  padding: 1rem 1.5rem 1rem 4.5rem; /* Increased left padding to 4.5rem from 3.5rem */
-  border-radius: 15px;
-  border: 2px solid #e2e8f0;
-  outline: none;
-  font-size: 1rem;
-  background: rgba(255, 255, 255, 0.9);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px); /* vendor prefix */
-}
-
-.search-box::before {
-  position: absolute;
-  left: 1.5rem; /* Slightly increased left for better spacing */
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.2rem; /* Slightly bigger for clarity */
-  z-index: 2;
-  pointer-events: none; /* Make sure icon doesn't capture clicks */
-}
-
-/* Search box base styles */
-.search-box {
-  position: relative;
-  flex-grow: 1;
-  max-width: 450px;
-  min-width: 0; /* prevents shrinking issues */
-}
-
-.search-box input {
-  width: 100%;
-  padding: 1rem 1.5rem 1rem 4.5rem; /* Space for icon plus padding */
-  border-radius: 15px;
-  border: 2px solid #e2e8f0;
-  outline: none;
-  font-size: 1rem;
-  background: rgba(255, 255, 255, 0.9);
-  transition: border-color 0.3s;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-sizing: border-box; /* ensure padding included in width */
-}
-
-.search-box::before {
-  position: absolute;
-  left: 1.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.2rem;
-  z-index: 2;
-  pointer-events: none;
-  user-select: none;
-}
-
-/* Responsive layout for search and header */
-.content-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f1f5f9;
-}
-
-/* When on smaller screens - stack the header items vertically for better space */
-@media (max-width: 768px) {
-  .content-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-
-  .search-box {
-    max-width: 100%; /* full width on small screens */
-  }
-
-  .search-box input {
-    padding-left: 3.5rem; /* reduce left padding on smaller devices */
-  }
-
-  .search-box::before {
-    left: 1rem; /* adjust icon position slightly for smaller inputs */
-  }
-}
-
-@media (max-width: 480px) {
-  .search-box input {
-    font-size: 0.95rem; /* slightly smaller font for very small screens */
-    padding-left: 3.2rem;
-  }
-
-  .search-box::before {
-    left: 0.9rem;
-    font-size: 1rem;
-  }
 }

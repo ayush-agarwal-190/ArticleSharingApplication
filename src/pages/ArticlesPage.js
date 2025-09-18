@@ -164,122 +164,55 @@ function ArticlesPage() {
 
   if (loading) {
     return (
-      <div className="articles-page" style={{ textAlign: "center", padding: "60px 20px" }}>
-        <div className="spinner" style={{ marginBottom: "20px" }}></div>
-        <p style={{ fontSize: "1.2rem", color: "#555" }}>Loading amazing articles...</p>
+      <div className="articles-page">
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Loading amazing articles...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div
-        className="articles-page"
-        style={{
-          textAlign: "center",
-          padding: "60px 20px",
-          color: "#b00020",
-          fontSize: "1.2rem",
-          maxWidth: "600px",
-          margin: "auto",
-        }}
-      >
-        <span style={{ fontSize: "3rem", display: "block", marginBottom: "16px" }}>⚠️</span>
-        <h3>Oops! Something went wrong</h3>
-        <p>{error}</p>
-        <button
-          className="btn-primary"
-          onClick={() => window.location.reload()}
-          style={{
-            marginTop: "20px",
-            backgroundColor: "#1976d2",
-            color: "white",
-            border: "none",
-            padding: "12px 28px",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontWeight: "600",
-            fontSize: "1rem",
-            transition: "background-color 0.3s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#155fa0")}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1976d2")}
-        >
-          Try Again
-        </button>
+      <div className="articles-page">
+        <div className="no-articles">
+          <span className="emoji">⚠️</span>
+          <h3>Oops! Something went wrong</h3>
+          <p>{error}</p>
+          <button className="btn-primary" onClick={() => window.location.reload()}>
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="articles-page"
-      style={{
-        maxWidth: "1100px",
-        margin: "auto",
-        padding: "25px 20px 50px",
-        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-        color: "#2c3e50",
-      }}
-    >
-      <header
-        className="page-header"
-        style={{ marginBottom: "30px", textAlign: "center" }}
-      >
-        <h1 style={{ fontSize: "3rem", fontWeight: "700", color: "#1976d2", marginBottom: "6px" }}>
-          Knowledge Hub
-        </h1>
-        <p style={{ fontSize: "1.25rem", color: "#555" }}>
+    <div className="articles-page">
+      <header className="page-header">
+        <h1>Knowledge Hub</h1>
+        <p className="subtitle">
           Discover insights, tutorials, and stories from our vibrant community
         </p>
       </header>
 
-      <div
-        className="page-layout"
-        style={{ display: "flex", gap: "32px", flexWrap: "wrap" }}
-      >
-        <main
-          className="main-content"
-          style={{ flex: "1 1 700px", minWidth: "320px" }}
-          aria-label="Latest articles"
-        >
-          <div
-            className="content-header"
-            style={{
-              marginBottom: "20px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <h2 style={{ fontWeight: "700", fontSize: "2rem", margin: 0 }}>
-              Latest Articles
-            </h2>
-            <div className="search-box" style={{ flexGrow: 1, maxWidth: "320px" }}>
+      <div className="page-layout">
+        <main className="main-content" aria-label="Latest articles">
+          <div className="content-header">
+            <h2>Latest Articles</h2>
+            <div className="search-box">
               <input
                 type="search"
                 placeholder="Search articles, authors, or topics..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Search articles"
-                style={{
-                  width: "100%",
-                  padding: "10px 15px",
-                  fontSize: "1rem",
-                  borderRadius: "8px",
-                  border: "1px solid #ccc",
-                  outlineColor: "#1976d2",
-                  transition: "border-color 0.3s",
-                }}
               />
             </div>
           </div>
 
-          <div
-            className="articles-count"
-            style={{ fontWeight: "600", fontSize: "1rem", marginBottom: "12px" }}
-          >
+          <div className="articles-count">
             {filteredPosts.length} {filteredPosts.length === 1 ? "article" : "articles"} found
             {filterTag && (
               <span>
@@ -295,72 +228,28 @@ function ArticlesPage() {
             )}
           </div>
 
-          <div
-            className="articles-grid"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(310px, 1fr))",
-              gap: "20px",
-            }}
-          >
+          <div className="articles-grid">
             {filteredPosts.length === 0 ? (
-              <div
-                className="no-articles"
-                style={{
-                  gridColumn: "1 / -1",
-                  textAlign: "center",
-                  padding: "40px 20px",
-                  color: "#777",
-                }}
-              >
-                <span style={{ fontSize: "2.5rem" }}>
+              <div className="no-articles">
+                <span className="emoji">
                   {debouncedSearchQuery || filterTag ? "🔍" : "📝"}
                 </span>
-                <h3 style={{ marginTop: "12px", marginBottom: "8px" }}>
+                <h3>
                   {debouncedSearchQuery || filterTag ? "No articles found" : "No articles yet"}
                 </h3>
-                <p style={{ marginBottom: "16px", fontSize: "1.1rem" }}>
+                <p>
                   {debouncedSearchQuery || filterTag
                     ? "Try adjusting your search terms or filters."
                     : "Be the first to share knowledge with the community!"}
                 </p>
                 {!debouncedSearchQuery && !filterTag && (
-                  <Link
-                    to="/write"
-                    className="btn-primary"
-                    style={{
-                      padding: "12px 28px",
-                      backgroundColor: "#1976d2",
-                      color: "white",
-                      borderRadius: "8px",
-                      fontSize: "1rem",
-                      fontWeight: "600",
-                      textDecoration: "none",
-                      display: "inline-block",
-                      transition: "background-color 0.3s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#155fa0")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1976d2")}
-                  >
+                  <Link to="/write" className="btn-primary">
                     Write First Article
                   </Link>
                 )}
                 {(debouncedSearchQuery || filterTag) && (
                   <button
                     className="btn-primary"
-                    style={{
-                      padding: "10px 26px",
-                      backgroundColor: "#1976d2",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      fontSize: "1rem",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                      transition: "background-color 0.3s",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#155fa0")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1976d2")}
                     onClick={() => {
                       setSearchQuery("");
                       setFilterTag("");
@@ -374,172 +263,60 @@ function ArticlesPage() {
               filteredPosts.map((post) => {
                 const userProfile = getUserProfile(post.uid);
                 return (
-                  <article
-                    key={post.id}
-                    className="article-card"
-                    style={{
-                      backgroundColor: "white",
-                      borderRadius: "12px",
-                      boxShadow: "0 3px 6px rgba(0,0,0,0.1)",
-                      display: "flex",
-                      flexDirection: "column",
-                      overflow: "hidden",
-                      cursor: "pointer",
-                      transition: "transform 0.2s",
-                    }}
-                  >
+                  <article key={post.id} className="article-card">
                     <Link
                       to={`/article/${post.id}`}
                       aria-label={`Read article: ${post.title}`}
-                      style={{
-                        color: "inherit",
-                        textDecoration: "none",
-                        display: "flex",
-                        flexDirection: "column",
-                        height: "100%",
-                        padding: "18px 20px",
-                      }}
                     >
-                      <header
-                        className="card-header"
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: "14px",
-                          gap: "10px",
-                          flexWrap: "wrap",
-                        }}
-                      >
+                      <header className="card-header">
                         {post.tags && post.tags.length > 0 && (
-                          <span
-                            className="tag"
-                            style={{
-                              backgroundColor: "#667eea",
-                              color: "white",
-                              padding: "5px 12px",
-                              borderRadius: "16px",
-                              fontSize: "0.9rem",
-                              fontWeight: "700",
-                              userSelect: "none",
-                              flexShrink: 0,
-                            }}
-                          >
+                          <span className="tag">
                             {post.tags[0]}
                           </span>
                         )}
-                        <div
-                          className="meta"
-                          style={{
-                            fontSize: "0.85rem",
-                            color: "#555",
-                            display: "flex",
-                            gap: "16px",
-                            whiteSpace: "nowrap",
-                            flexShrink: 0,
-                          }}
-                        >
+                        <div className="meta">
                           <span>⏱️ {calculateReadingTime(post.content)} min read</span>
                           <span>📅 {formatDate(post.createdAt)}</span>
                         </div>
                       </header>
 
-                      <div className="card-body" style={{ flexGrow: 1 }}>
-                        <h2
-                          className="title"
-                          style={{
-                            fontSize: "1.25rem",
-                            color: "#1a237e",
-                            fontWeight: "700",
-                            marginBottom: "10px",
-                            lineHeight: 1.3,
-                          }}
-                        >
+                      <div className="card-body">
+                        <h2 className="title">
                           {post.title}
                         </h2>
-                        <p
-                          className="excerpt"
-                          style={{
-                            fontSize: "1rem",
-                            color: "#434343",
-                            lineHeight: 1.5,
-                            marginBottom: "18px",
-                            whiteSpace: "pre-wrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            maxHeight: "6em",
-                          }}
-                        >
+                        <p className="excerpt">
                           {generateExcerpt(post.content, 180)}
                         </p>
                       </div>
 
-                      <footer
-                        className="card-footer"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          justifyContent: "space-between",
-                          marginTop: "auto",
-                        }}
-                      >
-                        <div className="author" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <footer className="card-footer">
+                        <div className="author">
                           {userProfile.photoURL ? (
                             <img
                               src={userProfile.photoURL}
                               alt={`${post.author}'s profile`}
                               className="avatar"
-                              style={{
-                                width: "36px",
-                                height: "36px",
-                                borderRadius: "50%",
-                                objectFit: "cover",
-                              }}
                               onError={(e) => {
                                 e.target.style.display = "none";
                               }}
                             />
                           ) : (
-                            <div
-                              className="avatar"
-                              style={{
-                                width: "36px",
-                                height: "36px",
-                                borderRadius: "50%",
-                                background: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "white",
-                                fontWeight: "700",
-                                fontSize: "1.2rem",
-                              }}
-                            >
+                            <div className="avatar">
                               {post.author ? post.author.charAt(0).toUpperCase() : "?"}
                             </div>
                           )}
-                          <div className="author-info" style={{ fontSize: "0.9rem", color: "#555" }}>
-                            <p className="author-name" style={{ margin: 0, fontWeight: "600" }}>
+                          <div className="author-info">
+                            <p className="author-name">
                               {post.author || "Anonymous"}
                             </p>
                             {userProfile.department && (
-                              <p className="author-dept" style={{ margin: 0, fontWeight: "400", fontStyle: "italic" }}>
+                              <p className="author-dept">
                                 {userProfile.department}
                               </p>
                             )}
                           </div>
                         </div>
-                        <span
-                          className="read-more"
-                          style={{
-                            color: "#1976d2",
-                            fontWeight: "700",
-                            fontSize: "0.875rem",
-                            userSelect: "none",
-                            flexShrink: 0,
-                          }}
-                        >
+                        <span className="read-more">
                           Read more →
                         </span>
                       </footer>
@@ -551,52 +328,14 @@ function ArticlesPage() {
           </div>
         </main>
 
-        <aside
-          className="sidebar"
-          style={{
-            flex: "0 0 280px",
-            backgroundColor: "#f7f9fc",
-            borderRadius: "12px",
-            padding: "24px 20px",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
-            height: "fit-content",
-            fontSize: "0.95rem",
-            color: "#34495e",
-          }}
-          aria-label="Article filters and stats"
-        >
+        <aside className="sidebar" aria-label="Article filters and stats">
           <section>
-            <h3
-              style={{
-                fontWeight: "700",
-                fontSize: "1.25rem",
-                marginBottom: "16px",
-                borderBottom: "2px solid #1976d2",
-                paddingBottom: "6px",
-                color: "#1976d2",
-              }}
-            >
-              Filter by Topic
-            </h3>
-            <div
-              className="tags-filter"
-              style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}
-            >
+            <h3>Filter by Topic</h3>
+            <div className="tags-filter">
               <button
                 className={!filterTag ? "active" : ""}
                 onClick={() => setFilterTag("")}
                 aria-pressed={!filterTag}
-                style={{
-                  padding: "6px 15px",
-                  borderRadius: "20px",
-                  border: !filterTag ? "2px solid #1976d2" : "1px solid #ccc",
-                  backgroundColor: !filterTag ? "#e3f2fd" : "white",
-                  color: !filterTag ? "#1976d2" : "#444",
-                  cursor: "pointer",
-                  fontWeight: "600",
-                  fontSize: "0.85rem",
-                  transition: "all 0.3s",
-                }}
               >
                 All Topics ({posts.length})
               </button>
@@ -611,18 +350,6 @@ function ArticlesPage() {
                   <button
                     key={tag}
                     className={isActive ? "active" : ""}
-                    style={{
-                      padding: "6px 15px",
-                      borderRadius: "20px",
-                      border: isActive ? "2px solid #1976d2" : "1px solid #ccc",
-                      backgroundColor: isActive ? "#667eea" : "white",
-                      color: isActive ? "white" : "#444",
-                      cursor: "pointer",
-                      fontWeight: "600",
-                      fontSize: "0.85rem",
-                      transition: "all 0.3s",
-                      whiteSpace: "nowrap",
-                    }}
                     onClick={() => setFilterTag(tag)}
                     aria-pressed={isActive}
                   >
@@ -634,65 +361,24 @@ function ArticlesPage() {
           </section>
 
           <section style={{ marginTop: "2rem" }}>
-            <h3
-              style={{
-                fontWeight: "700",
-                fontSize: "1.25rem",
-                marginBottom: "16px",
-                borderBottom: "2px solid #44a085",
-                paddingBottom: "6px",
-                color: "#44a085",
-              }}
-            >
-              Quick Stats
-            </h3>
-            <div
-              style={{
-                padding: "1rem",
-                background: "rgba(68, 160, 133, 0.1)",
-                borderRadius: "12px",
-                border: "1px solid rgba(68, 160, 133, 0.3)",
-                color: "#2c3e50",
-                fontWeight: "600",
-                fontSize: "1rem",
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.8rem",
-              }}
-            >
+            <h3>Quick Stats</h3>
+            <div className="stats-box">
               <div>
-                📚 Total Articles: <span style={{ fontWeight: "700" }}>{posts.length}</span>
+                📚 Total Articles: <span>{posts.length}</span>
               </div>
               <div>
-                🏷️ Topics: <span style={{ fontWeight: "700" }}>{allTags.length}</span>
+                🏷️ Topics: <span>{allTags.length}</span>
               </div>
               <div>
-                👥 Authors: <span style={{ fontWeight: "700" }}>{Object.keys(userProfiles).length}</span>
+                👥 Authors: <span>{Object.keys(userProfiles).length}</span>
               </div>
             </div>
           </section>
 
           {allTags.length > 0 && (
             <section style={{ marginTop: "2rem" }}>
-              <h3
-                style={{
-                  fontWeight: "700",
-                  fontSize: "1.25rem",
-                  marginBottom: "16px",
-                  borderBottom: "2px solid #764ba2",
-                  paddingBottom: "6px",
-                  color: "#764ba2",
-                }}
-              >
-                Popular Topics
-              </h3>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "8px",
-                }}
-              >
+              <h3>Popular Topics</h3>
+              <div className="popular-tags">
                 {allTags.slice(0, 6).map((tag) => {
                   const tagCount = posts.filter(
                     (post) => post.tags && post.tags.includes(tag)
@@ -703,21 +389,7 @@ function ArticlesPage() {
                     <button
                       key={tag}
                       onClick={() => setFilterTag(tag)}
-                      style={{
-                        padding: "6px 14px",
-                        borderRadius: "20px",
-                        border: isActive ? "none" : "1px solid #ddd",
-                        background: isActive
-                          ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-                          : "rgba(248, 250, 252, 0.85)",
-                        color: isActive ? "white" : "#64748b",
-                        cursor: "pointer",
-                        fontSize: "0.85rem",
-                        fontWeight: "600",
-                        whiteSpace: "nowrap",
-                        boxShadow: isActive ? "0 0 12px rgba(118, 75, 162, 0.6)" : "none",
-                        transition: "all 0.3s ease",
-                      }}
+                      className={isActive ? "active" : ""}
                       aria-pressed={isActive}
                     >
                       {tag} ({tagCount})

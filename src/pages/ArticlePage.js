@@ -1,397 +1,424 @@
-import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+// ArticlesPage.js - Professional Corporate Version
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { Link } from "react-router-dom";
+import { db } from "../firebase";
 import {
-  doc,
-  getDoc,
   collection,
-  addDoc,
   query,
   orderBy,
   onSnapshot,
-  serverTimestamp,
+  doc,
+  getDoc,
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { db } from "../firebase";
-import "./ArticlePage-comments.css";
+import "./ArticlesPage.css";
 
-function ArticlePage() {
-  const { articleId } = useParams();
-  const auth = getAuth();
-
-  const [article, setArticle] = useState(null);
-  const [author, setAuthor] = useState(null);
+function ArticlesPage() {
+  const [posts, setPosts] = useState([]);
+  const [filterTag, setFilterTag] = useState("");
+  const [userProfiles, setUserProfiles] = useState({});
   const [loading, setLoading] = useState(true);
-  const [textSize, setTextSize] = useState("medium");
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [tagsHidden, setTagsHidden] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [error, setError] = useState(null);
+  const [activeView, setActiveView] = useState("grid"); // 'grid' or 'list'
+
+  // Debounced search to reduce excessive filtering calls
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
   useEffect(() => {
-    async function fetchArticleAndAuthor() {
-      try {
-        const artRef = doc(db, "posts", articleId);
-        const artSnap = await getDoc(artRef);
-        if (artSnap.exists()) {
-          const artData = { id: artSnap.id, ...artSnap.data() };
-          setArticle(artData);
-          if (artData.uid) {
-            const authRef = doc(db, "users", artData.uid);
-            const authSnap = await getDoc(authRef);
-            if (authSnap.exists()) {
-              setAuthor({ id: authSnap.id, ...authSnap.data() });
-            }
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(
+      q,
+      async (snapshot) => {
+        try {
+          const postsData = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setPosts(postsData);
+
+          // Efficiently fetch only needed user profiles
+          const uniqueUserIds = [
+            ...new Set(postsData.map((post) => post.uid).filter(Boolean)),
+          ];
+          const profilesToFetch = uniqueUserIds.filter(
+            (uid) => !userProfiles[uid]
+          );
+
+          if (profilesToFetch.length > 0) {
+            const profiles = {};
+            const profilePromises = profilesToFetch.map(async (uid) => {
+              try {
+                const userDoc = await getDoc(doc(db, "users", uid));
+                if (userDoc.exists()) {
+                  profiles[uid] = userDoc.data();
+                }
+              } catch (error) {
+                console.error(`Error fetching profile for ${uid}:`, error);
+              }
+            });
+
+            await Promise.allSettled(profilePromises);
+            setUserProfiles((prev) => ({ ...prev, ...profiles }));
           }
+
+          setLoading(false);
+          setError(null);
+        } catch (err) {
+          console.error("Error fetching posts:", err);
+          setError("Failed to load articles. Please try again.");
+          setLoading(false);
         }
-      } catch (err) {
-        console.error("Error fetching article:", err);
-      } finally {
+      },
+      (err) => {
+        console.error("Error with posts subscription:", err);
+        setError("Failed to connect to the database. Please check your connection.");
         setLoading(false);
       }
-    }
-    fetchArticleAndAuthor();
-  }, [articleId]);
+    );
 
-  useEffect(() => {
-    if (!articleId) return;
-    const commentsRef = collection(db, "posts", articleId, "comments");
-    const q = query(commentsRef, orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const cmts = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      }));
-      setComments(cmts);
-    });
     return unsubscribe;
-  }, [articleId]);
+  }, [userProfiles]);
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "";
+  // Calculate reading time (words per minute)
+  const calculateReadingTime = useCallback((content) => {
+    if (!content) return 0;
+    const wordsPerMinute = 200;
+    const words = content.trim().split(/\s+/).length;
+    return Math.max(1, Math.ceil(words / wordsPerMinute));
+  }, []);
+
+  // Format date with friendly display
+  const formatDate = useCallback((timestamp) => {
+    if (!timestamp) return "Date not available";
     try {
-      const dt = timestamp.toDate();
-      return dt.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      const now = new Date();
+      const diffTime = Math.abs(now - date);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) return "Yesterday";
+      if (diffDays <= 7) return `${diffDays} days ago`;
+
+      return date.toLocaleDateString("en-US", {
+        month: "short",
         day: "numeric",
+        year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
       });
-    } catch {
+    } catch (error) {
+      console.error("Error formatting date:", error);
       return "Date not available";
     }
-  };
+  }, []);
 
-  const calculateReadingTime = (content) => {
-    if (!content) return 0;
-    const words = content.trim().split(/\s+/).length;
-    return Math.ceil(words / 200);
-  };
+  // Extract and sort tags
+  const allTags = useMemo(() => {
+    const tags = posts.flatMap((post) => post.tags || []);
+    return [...new Set(tags)].sort();
+  }, [posts]);
 
-  const handleAddComment = async () => {
-    if (!newComment.trim()) return;
-    if (!auth.currentUser) return;
-    try {
-      const commentsRef = collection(db, "posts", articleId, "comments");
-      await addDoc(commentsRef, {
-        content: newComment,
-        uid: auth.currentUser.uid,
-        author: auth.currentUser.displayName || "Anonymous",
-        photoURL: auth.currentUser.photoURL || null,
-        createdAt: serverTimestamp(),
-      });
-      setNewComment("");
-    } catch (err) {
-      console.error("Error adding comment:", err);
-    }
-  };
+  // Filter posts by tag and search query
+  const filteredPosts = useMemo(() => {
+    return posts.filter((post) => {
+      const matchesTag = !filterTag || (post.tags && post.tags.includes(filterTag));
+
+      const searchLower = debouncedSearchQuery.toLowerCase();
+      const matchesSearch =
+        !debouncedSearchQuery ||
+        post.title.toLowerCase().includes(searchLower) ||
+        post.content.toLowerCase().includes(searchLower) ||
+        post.author.toLowerCase().includes(searchLower) ||
+        (post.tags && post.tags.some((tag) => tag.toLowerCase().includes(searchLower)));
+
+      return matchesTag && matchesSearch;
+    });
+  }, [posts, filterTag, debouncedSearchQuery]);
+
+  // Safely get user profile by uid
+  const getUserProfile = useCallback(
+    (uid) => userProfiles[uid] || {},
+    [userProfiles]
+  );
+
+  // Generate article excerpt without cutting words abruptly
+  const generateExcerpt = useCallback((content, maxLength = 150) => {
+    if (!content) return "No content available...";
+
+    const cleanContent = content.replace(/<[^>]*>/g, "");
+
+    if (cleanContent.length <= maxLength) return cleanContent;
+
+    const truncated = cleanContent.substring(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(" ");
+
+    return lastSpace > maxLength * 0.8
+      ? truncated.substring(0, lastSpace) + "..."
+      : truncated + "...";
+  }, []);
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading article...</p>
+      <div className="articles-page">
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Loading articles...</p>
+        </div>
       </div>
     );
   }
 
-  if (!article) {
+  if (error) {
     return (
-      <div className="error-container">
-        <h2>Article Not Found</h2>
-        <p>The article you're looking for doesn't exist or may have been removed.</p>
-        <Link to="/articles" className="back-button">
-          Back to Articles
-        </Link>
+      <div className="articles-page">
+        <div className="no-articles">
+          <h3>Something went wrong</h3>
+          <p>{error}</p>
+          <button className="btn-primary" onClick={() => window.location.reload()}>
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="article-page" style={{ maxWidth: "900px", margin: "auto", padding: "20px" }}>
-      <header className="article-header" style={{ marginBottom: "2rem" }}>
-        <Link to="/articles" className="back-button" style={{ color: "#1976d2", fontWeight: "bold", textDecoration: "none" }}>
-          ← Back to Articles
-        </Link>
-        <h1 style={{ fontSize: "2.5rem", margin: "15px 0", lineHeight: 1.2 }}>{article.title}</h1>
-
-        <div className="article-details" style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-          {author?.photoURL && (
-            <img
-              src={author.photoURL}
-              alt={article.author}
-              style={{ width: "60px", height: "60px", borderRadius: "50%" }}
-            />
-          )}
-          <div className="author-meta" style={{ flexGrow: 1 }}>
-            <Link to={`/profile/${article.uid}`} style={{ fontSize: "1.1rem", fontWeight: "600", color: "#333", textDecoration: "none" }}>
-              {article.author}
-            </Link>
-            <div className="meta-details" style={{ fontSize: "0.9rem", color: "#666", marginTop: "4px" }}>
-              <span>{formatDate(article.createdAt)}</span> &middot; <span>{calculateReadingTime(article.content)} min read</span>
-            </div>
-          </div>
-        </div>
-
-        {!tagsHidden && article.tags && article.tags.length > 0 && (
-          <div
-            className="article-tags"
-            style={{
-              marginTop: "1rem",
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "10px",
-              userSelect: "none"
-            }}
-          >
-            {article.tags.map((tag) => (
-              <span
-                key={tag}
-                className="tag"
-                onClick={() => setTagsHidden(true)}
-                style={{
-                  cursor: "pointer",
-                  padding: "5px 12px",
-                  backgroundColor: "#e0e0e0",
-                  borderRadius: "15px",
-                  fontSize: "0.85rem",
-                  color: "#555",
-                  transition: "background-color 0.3s",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#b0b0b0")}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = "#e0e0e0")}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div
-          className="text-size-controls"
-          style={{ marginTop: "2rem", display: "flex", gap: "10px", justifyContent: "flex-start" }}
-        >
-          {["small", "medium", "large"].map((size) => (
-            <button
-              key={size}
-              className={textSize === size ? "active" : ""}
-              onClick={() => setTextSize(size)}
-              style={{
-                cursor: "pointer",
-                padding: "6px 12px",
-                fontSize: "1rem",
-                borderRadius: "4px",
-                border: textSize === size ? "2px solid #1976d2" : "1px solid #ccc",
-                backgroundColor: textSize === size ? "#e3f2fd" : "#fff",
-                fontWeight: textSize === size ? "600" : "400",
-                transition: "all 0.3s",
-                lineHeight: 1,
-              }}
-              aria-label={`Set text size to ${size}`}
-            >
-              A
-            </button>
-          ))}
-        </div>
+    <div className="articles-page">
+      <header className="page-header">
+        <h1>Knowledge Hub</h1>
+        <p className="subtitle">
+          Discover insights, tutorials, and stories from our community
+        </p>
       </header>
 
-      <main className="article-content-container" style={{ marginBottom: "3rem" }}>
-        <article className={`article-content text-${textSize}`} style={{ fontSize: textSize === "small" ? "16px" : textSize === "medium" ? "18px" : "20px", lineHeight: 1.6, color: "#222" }}>
-          {article.content.split("\n").map((para, idx) =>
-            para.trim() ? (
-              <p key={idx} style={{ marginBottom: "1rem" }}>
-                {para}
-              </p>
-            ) : (
-              <br key={idx} />
-            )
-          )}
-        </article>
-
-        <div
-          className="article-actions"
-          style={{ display: "flex", gap: "15px", marginTop: "2rem", justifyContent: "flex-start" }}
-        >
-          {["👍 Helpful", "💬 Comment", "🔖 Save", "📤 Share"].map((action, idx) => (
-            <button
-              key={idx}
-              className="action-button"
-              style={{
-                cursor: "pointer",
-                padding: "10px 16px",
-                borderRadius: "6px",
-                border: "none",
-                backgroundColor: "#1976d2",
-                color: "#fff",
-                fontWeight: "600",
-                transition: "background-color 0.3s",
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#155fa0")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1976d2")}
-              aria-label={action}
-            >
-              {action}
-            </button>
-          ))}
-        </div>
-      </main>
-
-      <footer className="article-footer" style={{ borderTop: "1px solid #ddd", paddingTop: "2rem" }}>
-        <section
-          className="author-card"
-          style={{
-            border: "1px solid #ddd",
-            borderRadius: "8px",
-            padding: "20px",
-            display: "flex",
-            gap: "20px",
-            marginBottom: "2rem",
-            alignItems: "center",
-            backgroundColor: "#fafafa",
-          }}
-        >
-          {author?.photoURL && (
-            <img
-              src={author.photoURL}
-              alt={article.author}
-              className="author-avatar-large"
-              style={{
-                width: "80px",
-                height: "80px",
-                borderRadius: "50%",
-                objectFit: "cover",
-                border: "2px solid #1976d2",
-              }}
-            />
-          )}
-          <div className="author-info-detailed" style={{ flexGrow: 1 }}>
-            <h3 style={{ margin: "0 0 8px 0" }}>About the Author</h3>
-            <Link
-              to={`/profile/${article.uid}`}
-              className="author-name"
-              style={{ fontWeight: "700", fontSize: "1.2rem", color: "#1976d2", textDecoration: "none" }}
-            >
-              {article.author}
-            </Link>
-            {author?.department && <p style={{ margin: "6px 0", color: "#555" }}>{author.department}</p>}
-            {author?.bio && <p style={{ color: "#666" }}>{author.bio}</p>}
-            <Link
-              to={`/profile/${article.uid}`}
-              className="view-profile-btn"
-              style={{
-                display: "inline-block",
-                marginTop: "10px",
-                padding: "8px 14px",
-                backgroundColor: "#1976d2",
-                color: "#fff",
-                borderRadius: "5px",
-                textDecoration: "none",
-                fontWeight: "600",
-                transition: "background-color 0.3s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#155fa0")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1976d2")}
-              aria-label="View full profile"
-            >
-              View Full Profile
-            </Link>
-          </div>
-        </section>
-
-        <section className="comments-section" style={{ border: "1px solid #ddd", borderRadius: "8px", padding: "20px" }}>
-          <h3 style={{ marginBottom: "1rem" }}>Comments</h3>
-
-          {auth.currentUser ? (
-            <div className="add-comment" style={{ marginBottom: "1.5rem" }}>
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Write a comment..."
-                rows={3}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  fontSize: "1rem",
-                  borderRadius: "5px",
-                  border: "1px solid #ccc",
-                  resize: "vertical",
-                  boxSizing: "border-box",
-                  marginBottom: "8px",
-                  fontFamily: "inherit",
-                }}
-                aria-label="Write a comment"
-              />
-              <button
-                onClick={handleAddComment}
-                style={{
-                  backgroundColor: "#1976d2",
-                  color: "#fff",
-                  border: "none",
-                  padding: "10px 20px",
-                  cursor: "pointer",
-                  borderRadius: "5px",
-                  fontWeight: "600",
-                  transition: "background-color 0.3s",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#155fa0")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1976d2")}
-              >
-                Post Comment
-              </button>
+      <div className="page-layout">
+        <main className="main-content" aria-label="Latest articles">
+          <div className="content-header">
+            <h2>Latest Articles</h2>
+            <div className="controls">
+              <div className="search-box">
+                <input
+                  type="search"
+                  placeholder="Search articles, authors, or topics..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Search articles"
+                />
+              </div>
+              <div className="view-toggle">
+                <button 
+                  className={activeView === 'grid' ? 'active' : ''}
+                  onClick={() => setActiveView('grid')}
+                  aria-label="Grid view"
+                >
+                  <span>Grid</span>
+                </button>
+                <button 
+                  className={activeView === 'list' ? 'active' : ''}
+                  onClick={() => setActiveView('list')}
+                  aria-label="List view"
+                >
+                  <span>List</span>
+                </button>
+              </div>
             </div>
-          ) : (
-            <p>
-              Please <Link to="/login" style={{ color: "#1976d2", textDecoration: "none" }}>login</Link> to add a comment.
-            </p>
-          )}
+          </div>
 
-          <div className="comments-list" style={{ maxHeight: "300px", overflowY: "auto" }}>
-            {comments.length === 0 ? (
-              <p style={{ color: "#555" }}>No comments yet. Be the first to comment!</p>
-            ) : (
-              comments.map((c) => (
-                <div key={c.id} className="comment" style={{ padding: "10px 0", borderBottom: "1px solid #eee" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "5px" }}>
-                    {c.photoURL && (
-                      <img
-                        src={c.photoURL}
-                        alt={c.author}
-                        className="comment-avatar"
-                        style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover" }}
-                      />
-                    )}
-                    <strong style={{ color: "#333" }}>{c.author}</strong>
-                    <small style={{ marginLeft: "auto", color: "#999", fontSize: "0.8rem" }}>
-                      {c.createdAt ? c.createdAt.toDate().toLocaleString() : "Just now"}
-                    </small>
-                  </div>
-                  <p style={{ marginLeft: "46px", color: "#444", whiteSpace: "pre-wrap" }}>{c.content}</p>
-                </div>
-              ))
+          <div className="articles-count">
+            {filteredPosts.length} {filteredPosts.length === 1 ? "article" : "articles"} found
+            {filterTag && (
+              <span>
+                {" "}
+                in <strong>"{filterTag}"</strong>
+              </span>
+            )}
+            {debouncedSearchQuery && (
+              <span>
+                {" "}
+                matching <strong>"{debouncedSearchQuery}"</strong>
+              </span>
             )}
           </div>
-        </section>
-      </footer>
+
+          <div className={`articles-container ${activeView}`}>
+            {filteredPosts.length === 0 ? (
+              <div className="no-articles">
+                <h3>
+                  {debouncedSearchQuery || filterTag ? "No articles found" : "No articles yet"}
+                </h3>
+                <p>
+                  {debouncedSearchQuery || filterTag
+                    ? "Try adjusting your search terms or filters."
+                    : "Be the first to share knowledge with the community!"}
+                </p>
+                {!debouncedSearchQuery && !filterTag && (
+                  <Link to="/write" className="btn-primary">
+                    Write First Article
+                  </Link>
+                )}
+                {(debouncedSearchQuery || filterTag) && (
+                  <button
+                    className="btn-primary"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setFilterTag("");
+                    }}
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              filteredPosts.map((post) => {
+                const userProfile = getUserProfile(post.uid);
+                return (
+                  <article key={post.id} className="article-card">
+                    <Link
+                      to={`/article/${post.id}`}
+                      aria-label={`Read article: ${post.title}`}
+                    >
+                      <header className="card-header">
+                        {post.tags && post.tags.length > 0 && (
+                          <span className="tag">
+                            {post.tags[0]}
+                          </span>
+                        )}
+                        <div className="meta">
+                          <span>{calculateReadingTime(post.content)} min read</span>
+                          <span>{formatDate(post.createdAt)}</span>
+                        </div>
+                      </header>
+
+                      <div className="card-body">
+                        <h2 className="title">
+                          {post.title}
+                        </h2>
+                        <p className="excerpt">
+                          {generateExcerpt(post.content, 180)}
+                        </p>
+                      </div>
+
+                      <footer className="card-footer">
+                        <div className="author">
+                          {userProfile.photoURL ? (
+                            <img
+                              src={userProfile.photoURL}
+                              alt={`${post.author}'s profile`}
+                              className="avatar"
+                              onError={(e) => {
+                                e.target.style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <div className="avatar">
+                              {post.author ? post.author.charAt(0).toUpperCase() : "?"}
+                            </div>
+                          )}
+                          <div className="author-info">
+                            <p className="author-name">
+                              {post.author || "Anonymous"}
+                            </p>
+                            {userProfile.department && (
+                              <p className="author-dept">
+                                {userProfile.department}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <span className="read-more">
+                          Read more
+                        </span>
+                      </footer>
+                    </Link>
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </main>
+
+        <aside className="sidebar" aria-label="Article filters and stats">
+          <section>
+            <h3>Filter by Topic</h3>
+            <div className="tags-filter">
+              <button
+                className={!filterTag ? "active" : ""}
+                onClick={() => setFilterTag("")}
+                aria-pressed={!filterTag}
+              >
+                All Topics ({posts.length})
+              </button>
+              {allTags.map((tag) => {
+                const tagCount = posts.filter(
+                  (post) => post.tags && post.tags.includes(tag)
+                ).length;
+
+                const isActive = filterTag === tag;
+
+                return (
+                  <button
+                    key={tag}
+                    className={isActive ? "active" : ""}
+                    onClick={() => setFilterTag(tag)}
+                    aria-pressed={isActive}
+                  >
+                    {tag} ({tagCount})
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section style={{ marginTop: "2rem" }}>
+            <h3>Statistics</h3>
+            <div className="stats-box">
+              <div>
+                Total Articles: <span>{posts.length}</span>
+              </div>
+              <div>
+                Topics: <span>{allTags.length}</span>
+              </div>
+              <div>
+                Authors: <span>{Object.keys(userProfiles).length}</span>
+              </div>
+            </div>
+          </section>
+
+          {allTags.length > 0 && (
+            <section style={{ marginTop: "2rem" }}>
+              <h3>Popular Topics</h3>
+              <div className="popular-tags">
+                {allTags.slice(0, 6).map((tag) => {
+                  const tagCount = posts.filter(
+                    (post) => post.tags && post.tags.includes(tag)
+                  ).length;
+                  const isActive = filterTag === tag;
+
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => setFilterTag(tag)}
+                      className={isActive ? "active" : ""}
+                      aria-pressed={isActive}
+                    >
+                      {tag} ({tagCount})
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </aside>
+      </div>
     </div>
   );
 }
 
-export default ArticlePage;
+export default ArticlesPage;
