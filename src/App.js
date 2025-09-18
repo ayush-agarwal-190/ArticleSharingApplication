@@ -9,7 +9,7 @@ import EnhancedFooter from "./components/EnhancedFooter";
 import EnhancedPostForm from "./components/EnhancedPostForm";
 import ArticlesPage from "./pages/ArticlesPage";
 import ArticlePage from "./pages/ArticlePage";
-import MyArticlesPage from "./pages/MyArticlesPage"; // New Import
+import MyArticlesPage from "./pages/MyArticlesPage"; 
 import UserProfilePage from "./pages/UserProfilePage";
 import ProfileForm from "./components/ProfileForm";
 import JobOpportunities from "./components/JobOpportunities";
@@ -98,7 +98,7 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Navigate to="/articles" replace />} />
-            <Route path="/articles" element={<ArticlesPage />} />
+            <Route path="/articles" element={<ArticlesPage user={user} />} />
             <Route path="/article/:articleId" element={<ArticlePage user={user} />} />
             <Route 
               path="/my-articles" 
@@ -161,7 +161,7 @@ function App() {
                 )
               } 
             />
-            <Route path="/profile/:userId" element={<UserProfilePage />} />
+            <Route path="/profile/:userId" element={<UserProfilePage user={user} />} />
             <Route path="/jobs" element={<JobOpportunities user={user} />} />
             <Route 
               path="/about" 

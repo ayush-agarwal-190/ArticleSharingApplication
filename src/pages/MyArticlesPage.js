@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import {
   collection,
@@ -17,36 +17,40 @@ function MyArticlesPage({ user }) {
   const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    const q = query(
-      collection(db, "posts"),
-      where("uid", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
+    let unsubscribe = () => {}; // Initialize with a no-op function
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        setUserPosts(
-          snapshot.docs.map((postDoc) => ({
-            id: postDoc.id,
-            ...postDoc.data(),
-          }))
-        );
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error fetching user posts:", error);
-        setMessage("Failed to load your articles. Please try again.");
-        setLoading(false);
-      }
-    );
-    return unsubscribe;
+    if (user) {
+      const q = query(
+        collection(db, "posts"),
+        where("uid", "==", user.uid),
+        orderBy("createdAt", "desc")
+      );
+
+      unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          setUserPosts(
+            snapshot.docs.map((postDoc) => ({
+              id: postDoc.id,
+              ...postDoc.data(),
+            }))
+          );
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching user posts:", error);
+          setMessage("Failed to load your articles. Please try again.");
+          setLoading(false);
+        }
+      );
+    } else {
+      setLoading(false);
+    }
+
+    return () => unsubscribe(); // This is now guaranteed to be a function
   }, [user]);
 
   const handleDelete = async (postId) => {
@@ -54,7 +58,10 @@ function MyArticlesPage({ user }) {
       try {
         await deleteDoc(doc(db, "posts", postId));
         setMessage("Article deleted successfully!");
-        setTimeout(() => setMessage(""), 3000);
+        setTimeout(() => {
+          setMessage("");
+          navigate("/articles");
+        }, 3000);
       } catch (error) {
         console.error("Error deleting article:", error);
         setMessage("Error deleting article. Please try again.");
